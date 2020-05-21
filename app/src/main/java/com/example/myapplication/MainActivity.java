@@ -4,14 +4,12 @@ import android.Manifest;
 import android.os.Bundle;
 
 import com.example.myapplication.ui.home.HomeFragment;
-import com.example.myapplication.ui.log.LogFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.navigation.NavigationView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
@@ -35,6 +33,8 @@ public class MainActivity extends AppCompatActivity
 
     List<String> mLogList;
 
+    MutableLiveData<String> logData;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,12 +57,15 @@ public class MainActivity extends AppCompatActivity
                 REQUEST_WRITE_STORAGE);
 
         mLogList = new ArrayList<>();
+        logData = new MutableLiveData<>();
 
         //JumpToFragment(2);
     }
 
     public void setRootDir(String value) {rootDir = value;}
     public void setTargetDir(String value) {targetDir = value;}
+    public String getRootDir() {return rootDir;}
+    public String getTargetDir() {return targetDir;}
 
     public void JumpToFragment(int id)
     {
@@ -75,9 +78,13 @@ public class MainActivity extends AppCompatActivity
         return mLogList;
     }
 
+    public LiveData<String> getLogData() {return logData;}
+
     public void onLog(String Text)
     {
-        mLogList.add(Text);
+        ////mLogList.add(Text);
+        logData.setValue(logData.getValue() + Text + "\n");
+        ////logString += Text + "\n";
     }
 
 }

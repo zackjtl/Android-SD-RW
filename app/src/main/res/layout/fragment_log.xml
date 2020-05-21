@@ -7,26 +7,26 @@
     tools:context=".ui.log.LogFragment">
 
     <TextView
-        android:id="@+id/text_log"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:id="@+id/logText"
+        style="@style/Widget.AppCompat.TextView"
+        android:layout_width="360dp"
+        android:layout_height="357dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginLeft="8dp"
         android:layout_marginEnd="8dp"
-        android:textAlignment="center"
-        android:textSize="20sp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="32dp"
+        android:editable="false"
+        android:scrollbarStyle="insideInset"
+        android:scrollbars="vertical"
+        android:scrollHorizontally="false"
+        android:singleLine="false"
+        android:text="TextView"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintHorizontal_bias="0.489"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.801" />
-
-    <ListView
-        android:id="@+id/logListView"
-        android:layout_width="409dp"
-        android:layout_height="564dp"
-        tools:layout_editor_absoluteX="1dp"
-        tools:layout_editor_absoluteY="2dp" />
+        app:layout_constraintVertical_bias="0.13" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

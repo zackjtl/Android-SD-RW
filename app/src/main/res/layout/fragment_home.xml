@@ -30,6 +30,7 @@
         android:layout_marginBottom="20dp"
         android:background="@android:drawable/progress_horizontal"
         android:drawableLeft="@android:drawable/ic_menu_rotate"
+        android:drawingCacheQuality="high"
         android:foregroundGravity="center_vertical"
         android:text="Refresh"
         android:textColor="@color/cardview_light_background"

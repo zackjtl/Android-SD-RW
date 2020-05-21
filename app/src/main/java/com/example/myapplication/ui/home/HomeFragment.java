@@ -1,7 +1,9 @@
 package com.example.myapplication.ui.home;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.StatFs;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +15,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
@@ -51,7 +54,7 @@ public class HomeFragment extends LogOwner {
         });
 
 
-        homeViewModel.getRootList().observe(getViewLifecycleOwner(), new Observer<List<String>>() {
+        homeViewModel.getRootDispList().observe(getViewLifecycleOwner(), new Observer<List<String>>() {
             @Override
             public void onChanged(List<String> strings) {
                 ArrayAdapter adapter = new ArrayAdapter(getContext(),
@@ -81,16 +84,29 @@ public class HomeFragment extends LogOwner {
         Button refreshBtn = (Button)root.findViewById(R.id.refreshButton);
 
         refreshBtn.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
             @Override
             public void onClick(View v) {
                 List<StorageHelper.StorageVolume> storages = StorageHelper.getStorages(false);
                 List<String> rootList = new ArrayList<String>();
+                List<String> rootDispList = new ArrayList<String>();
 
                 for (StorageHelper.StorageVolume storage : storages) {
-                    rootList.add(storage.file.getAbsolutePath());
+                    String rootPath = storage.file.getAbsolutePath();
+                    StatFs stat1 = new StatFs(rootPath);
 
+                    long megaBytesFree = (stat1.getFreeBytes() >> 20);
+                    long megaBytesTotal = (stat1.getTotalBytes() >> 20);
+
+                    String freeStr = megaBytesFree >= 1024 ? String.format("%.2f GB", (double)megaBytesFree / 1024.0) : megaBytesFree + " GB";
+                    String totalStr = megaBytesTotal >= 1024 ? String.format("%.2f GB", (double)megaBytesTotal / 1024.0) : megaBytesTotal + " GB";
+                    String sizeStr = String.format(" [%s]", totalStr);
+
+                    rootList.add(storage.file.getAbsolutePath());
+                    rootDispList.add(storage.file.getAbsolutePath() + sizeStr);
                 }
                 homeViewModel.setRootList(rootList);
+                homeViewModel.setRootDispList(rootDispList);
             }
         });
 
