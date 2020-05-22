@@ -8,18 +8,33 @@
     tools:context=".ui.test.TestFragment">
 
     <TextView
-        android:id="@+id/testExeCaption"
-        android:layout_width="299dp"
-        android:layout_height="28dp"
+        android:id="@+id/textReadSpeed"
+        android:layout_width="277dp"
+        android:layout_height="25dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
-        android:layout_marginTop="32dp"
-        android:background="?android:attr/fastScrollPreviewBackgroundRight"
-        android:text="Test Execution"
-        android:textColor="@android:color/background_light"
-        android:textSize="18sp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginRight="32dp"
+        android:text="Read performance:"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.076"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/text_test" />
+        app:layout_constraintTop_toBottomOf="@+id/textWriteSpeed" />
+
+    <TextView
+        android:id="@+id/textMsg"
+        android:layout_width="282dp"
+        android:layout_height="61dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginLeft="32dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginRight="32dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.09"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progressBar" />
 
     <Spinner
         android:id="@+id/unitSpinner"
@@ -51,30 +66,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/sizeSelCaption" />
 
-    <TextView
-        android:id="@+id/text_test"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="70dp"
-        android:layout_marginEnd="8dp"
-        android:editable="false"
-        android:textAlignment="center"
-        android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/sizeSelCaption"
-        app:layout_constraintVertical_bias="0.0" />
-
     <Button
-        android:id="@+id/doTestBtn"
+        android:id="@+id/gotButton"
         android:layout_width="288dp"
         android:layout_height="48dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="20dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
         android:background="@android:drawable/progress_horizontal"
@@ -86,7 +84,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/testExeCaption" />
+        app:layout_constraintTop_toBottomOf="@+id/sizeRatioSeekBar" />
 
     <ProgressBar
         android:id="@+id/progressBar"
@@ -95,7 +93,7 @@
         android:layout_height="29dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="20dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
         android:drawingCacheQuality="high"
@@ -104,7 +102,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/doTestBtn" />
+        app:layout_constraintTop_toBottomOf="@+id/gotButton" />
 
     <TextView
         android:id="@+id/sizeSelCaption"
@@ -120,18 +118,40 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/textMsg"
-        android:layout_width="282dp"
-        android:layout_height="61dp"
+        android:id="@+id/textWriteSpeed"
+        android:layout_width="277dp"
+        android:layout_height="25dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
-        android:text="TextView"
+        android:text="Write performance:"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.09"
+        app:layout_constraintHorizontal_bias="0.085"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/progressBar" />
+        app:layout_constraintTop_toBottomOf="@+id/textMsg" />
+
+    <SeekBar
+        android:id="@+id/sizeRatioSeekBar"
+        android:layout_width="272dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="36dp"
+        android:layout_marginLeft="36dp"
+        android:layout_marginTop="9dp"
+        android:max="100"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sizeRatioText" />
+
+    <TextView
+        android:id="@+id/sizeRatioText"
+        android:layout_width="261dp"
+        android:layout_height="23dp"
+        android:layout_marginStart="36dp"
+        android:layout_marginLeft="36dp"
+        android:layout_marginTop="9dp"
+        android:text="Test size ratio (100%)"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sizeSpinner" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
