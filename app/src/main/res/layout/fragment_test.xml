@@ -13,7 +13,7 @@
         android:layout_height="25dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
         android:text="Read performance:"
@@ -24,7 +24,7 @@
 
     <TextView
         android:id="@+id/textMsg"
-        android:layout_width="282dp"
+        android:layout_width="283dp"
         android:layout_height="61dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
@@ -32,7 +32,7 @@
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.09"
+        app:layout_constraintHorizontal_bias="0.021"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/progressBar" />
 
@@ -110,10 +110,14 @@
         android:layout_height="28dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginRight="32dp"
         android:background="?android:attr/fastScrollPreviewBackgroundRight"
         android:text="Size Selection"
         android:textColor="@android:color/background_light"
         android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.133"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -134,23 +138,27 @@
 
     <SeekBar
         android:id="@+id/sizeRatioSeekBar"
-        android:layout_width="272dp"
-        android:layout_height="20dp"
-        android:layout_marginStart="36dp"
-        android:layout_marginLeft="36dp"
-        android:layout_marginTop="9dp"
+        android:layout_width="318dp"
+        android:layout_height="19dp"
+        android:layout_marginTop="20dp"
         android:max="100"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.206"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/sizeRatioText" />
 
     <TextView
         android:id="@+id/sizeRatioText"
-        android:layout_width="261dp"
-        android:layout_height="23dp"
+        android:layout_width="271dp"
+        android:layout_height="21dp"
         android:layout_marginStart="36dp"
         android:layout_marginLeft="36dp"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginRight="32dp"
         android:text="Test size ratio (100%)"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/sizeSpinner" />
 

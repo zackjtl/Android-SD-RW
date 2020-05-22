@@ -86,29 +86,37 @@ public class TestFragment extends LogOwner {
         testViewModel.getWritePerformance().observe(getViewLifecycleOwner(), new Observer<Double>() {
             @Override
             public void onChanged(Double writePerformance) {
-                String unitStr = "KB/s";
-
-                writePerformance /= 100;
-                if (writePerformance >= 1024) {
-                    writePerformance /= 1024;
-                    unitStr = "MB/s";
+                if (writePerformance == 0) {
+                    textWriteSpeed.setText("Write performance: --");
                 }
+                else {
+                    String unitStr = "KB/s";
 
-                textWriteSpeed.setText(String.format("Write performance: %.2f %s", writePerformance, unitStr));
+                    writePerformance /= 100;
+                    if (writePerformance >= 1024) {
+                        writePerformance /= 1024;
+                        unitStr = "MB/s";
+                    }
+                    textWriteSpeed.setText(String.format("Write performance: %.2f %s", writePerformance, unitStr));
+                }
             }
         });
         testViewModel.getReadPerformance().observe(getViewLifecycleOwner(), new Observer<Double>() {
             @Override
             public void onChanged(Double readPerformance) {
-                String unitStr = "KB/s";
-
-                readPerformance /= 100;
-                if (readPerformance >= 1024) {
-                    readPerformance /= 1024;
-                    unitStr = "MB/s";
+                if (readPerformance == 0) {
+                    textReadSpeed.setText("Read performance: --");
                 }
+                else {
+                    String unitStr = "KB/s";
 
-                textReadSpeed.setText(String.format("Read performance: %.2f %s", readPerformance, unitStr));
+                    readPerformance /= 100;
+                    if (readPerformance >= 1024) {
+                        readPerformance /= 1024;
+                        unitStr = "MB/s";
+                    }
+                    textReadSpeed.setText(String.format("Read performance: %.2f %s", readPerformance, unitStr));
+                }
             }
         });
 
@@ -162,6 +170,10 @@ public class TestFragment extends LogOwner {
         StatFs stat1 = new StatFs(rootPath);
         long totalBytes = (long) stat1.getBlockSize() * (long) stat1.getFreeBlocks();
         long totalKB = totalBytes / 1024;
+
+        if (totalKB > 1024)
+            totalKB -= 1024;
+
         return totalKB;
     }
     private void setTestSizeTextView(TextView tv)
@@ -193,7 +205,7 @@ public class TestFragment extends LogOwner {
 
             testViewModel.setSizeIdx(sizeSpinner.getSelectedItemPosition());
             testViewModel.setUnitIdx(unitSpinner.getSelectedItemPosition());
-            testViewModel.setTextMsg("You selected: " + size + " " + unit);
+            ////testViewModel.setTextMsg("You selected: " + size + " " + unit);
         }
 
         @Override
