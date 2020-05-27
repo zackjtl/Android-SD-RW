@@ -1,8 +1,12 @@
 package com.example.sdtesttool.ui;
 
+import android.content.Context;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.StatFs;
+
+import androidx.annotation.RequiresApi;
 
 import com.example.sdtesttool.ui.test.TestFragment;
 
@@ -13,24 +17,20 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Random;
 
-public class WriteDirectoryThread extends Thread {
-    String rootDir;
-    int rootSizeKB;
-    int fileSizeKB;
-    int testSizeRatio;
+
+public class RWTestThread extends TestThreadBase {
     Handler msgHandler;
     volatile boolean terminated;
-    PatternVerifyType verifyType;
     long totalKBWritten = 0;
-    long totalKBRead = 0;
-    long totalWriteElapsedMilli = 0;
-    long totalReadElapsedMilli=0;
     double writePerformanceKB = 0;
     double readPerformanceKB=0;
+
+    TestArgs testArgs;
+
+    static int MaxDirFiles = 32766;
 
     Queue<PerformanceUnit> writePerformanceQueue;
     Queue<PerformanceUnit> readPerformanceQueue;
@@ -39,43 +39,50 @@ public class WriteDirectoryThread extends Thread {
     int readPerformanceSlit = 0;
 
     private class PerformanceUnit {
-        public int time;
-        public int size;
+        public long time;
+        public long size;
 
         public PerformanceUnit(int time, int size) {this.time = time; this.size = size;}
     }
-
-    public WriteDirectoryThread(Handler msgHandler, PatternVerifyType verifyType, String rootDir, int rootSizeKB, int fileSizeKB, int testSizeRatio) {
-        this.rootDir = rootDir;
-        this.rootSizeKB = rootSizeKB;
-        this.fileSizeKB = fileSizeKB;
-        this.testSizeRatio = testSizeRatio;
-        this.msgHandler = msgHandler;
-        terminated = false;
-        this.verifyType = verifyType;
-
-        writePerformanceQueue = new ArrayDeque<>();
-        readPerformanceQueue = new ArrayDeque<>();
-
-    }
-    public enum PatternVerifyType {
+    public enum VerifyType {
         none,
         immediately,
-        after_all
+        after_all,
+        verify_only,
+        clear_files
+    }
+
+    public static class TestArgs {
+        public VerifyType verifyType;
+        public String rootDir;
+        public int rootSizeKB;
+        public int fileSizeKB;
+        public int testSizeRatio;
+        public boolean deleteFiles;
+    }
+
+    public RWTestThread(Handler msgHandler, TestArgs args) {
+        this.testArgs = args;
+        this.msgHandler = msgHandler;
+        terminated = false;
+        writePerformanceQueue = new ArrayDeque<>();
+        readPerformanceQueue = new ArrayDeque<>();
     }
 
     private void addLog(String s)
     {
         sendMessage(TestFragment.messageId.add_log.value, 0, s);
     }
+    private void showTextAndLog(String s)
+    {
+        addLog(s);
+        sendMessage(TestFragment.messageId.set_text_msg.value, 0, s);
+    }
     private void showText(String s)
     {
         sendMessage(TestFragment.messageId.set_text_msg.value, 0, s);
     }
-    private void almostDone()
-    {
-        sendMessage(TestFragment.messageId.almost_done.value, 0, null);
-    }
+
     private void setProgressMax(int progressMax)
     {
         sendMessage(TestFragment.messageId.set_progress_max.value, progressMax, null);
@@ -102,18 +109,45 @@ public class WriteDirectoryThread extends Thread {
         msgHandler.sendMessage(msg);
     }
 
+    private void almostDone()
+    {
+        int tag = testArgs.verifyType == VerifyType.verify_only ? 1 : 0;
+
+        sendMessage(TestFragment.messageId.almost_done.value, tag, null);
+        if (listener != null)
+            listener.onAlmostDone(tag);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void run()
     {
-        writeFlow();
-        if (verifyType == PatternVerifyType.after_all)
-            verifyFlow();
-        almostDone();
+        try {
+            if (testArgs.verifyType != VerifyType.verify_only &&
+                testArgs.verifyType != VerifyType.clear_files) {
+                writeFlow();
+            }
+
+            if (testArgs.verifyType == VerifyType.after_all ||
+                    testArgs.verifyType == VerifyType.verify_only)
+                verifyFlow();
+        }
+        catch (Exception e) {
+            throw e;
+        }
+        finally {
+            if (testArgs.deleteFiles) {
+                showTextAndLog("Delete test files");
+                deleteTestFiles();
+            }
+            showTextAndLog("Done");
+            almostDone();
+        }
     }
     private void resetWritePerformance()
     {
-        if (fileSizeKB < 32768)
-            writePerformanceSlit = (32768 + fileSizeKB - 1) / fileSizeKB;
+        if (testArgs.fileSizeKB < 32768)
+            writePerformanceSlit = (32768 + testArgs.fileSizeKB - 1) / testArgs.fileSizeKB;
         else
             writePerformanceSlit = 1;
 
@@ -133,13 +167,13 @@ public class WriteDirectoryThread extends Thread {
             totalTime += pu.time;
             totalSize += pu.size;
         }
-        writePerformanceKB = ((double)totalSize / (double)totalTime) * 1000;
+        writePerformanceKB = ((double)totalSize / (double)totalTime) * (1000000000);
         setWritePerformance(writePerformanceKB);
     }
     private void resetReadPerformance()
     {
-        if (fileSizeKB < 32768)
-            readPerformanceSlit = (32768 + fileSizeKB - 1) / fileSizeKB;
+        if (testArgs.fileSizeKB < 32768)
+            readPerformanceSlit = (32768 + testArgs.fileSizeKB - 1) / testArgs.fileSizeKB;
         else {
             readPerformanceSlit = 1;
         }
@@ -160,10 +194,11 @@ public class WriteDirectoryThread extends Thread {
             totalTime += pu.time;
             totalSize += pu.size;
         }
-        readPerformanceKB = ((double)totalSize / (double)totalTime) * 1000;
+        readPerformanceKB = ((double)totalSize / (double)totalTime) * (1000000000);
         setReadPerformance(readPerformanceKB);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void writeFlow()
     {
         try {
@@ -171,58 +206,56 @@ public class WriteDirectoryThread extends Thread {
 
             Random rand = new Random(0x12345678);
 
-            setProgressMax(50);
+            addLog("Star to write files on directory " + testArgs.rootDir);
 
-            addLog("Star to write files on directory " + rootDir);
-
-            int testSizeKB = (int)(rootSizeKB * ((double)testSizeRatio / 100));
+            int testSizeKB = (int)(testArgs.rootSizeKB * ((double)testArgs.testSizeRatio / 100));
             int remainKB = testSizeKB;
-            int totalFilesToTest = (testSizeKB + fileSizeKB - 1) / fileSizeKB;
+            int totalFilesToTest = (testSizeKB + testArgs.fileSizeKB - 1) / testArgs.fileSizeKB;
 
             addLog("Size to test: " + remainKB + " KB");
 
             int dirId = 0;
             int dirFileCount = 0;
             int totalFileCount = 0;
-            int maxDirFileCount = 32768;
 
             resetWritePerformance();
             resetReadPerformance();
 
-            String subDir = String.format("%04x", dirId);
-            String directory = initialDir(rootDir, subDir);
+            String subDir = String.format("%05d", dirId);
+            String directory = initialDir(testArgs.rootDir, subDir);
 
-            setProgressMax(totalFilesToTest);
+            if (testArgs.verifyType == VerifyType.after_all)
+                setProgressMax(totalFilesToTest * 2);
+            else
+                setProgressMax(totalFilesToTest);
 
             while (remainKB != 0) {
                 if (terminated)
                     throw new Exception("User terminated");
 
                 if (remainKB <= 1024) {
-                    StatFs stat1 = new StatFs(rootDir);
+                    StatFs stat1 = new StatFs(testArgs.rootDir);
                     long totalBytes = (long) stat1.getBlockSize() * (long) stat1.getFreeBlocks();
                     long totalKB = totalBytes / 1024;
                     if (totalKB < remainKB)
                         remainKB = (int)totalKB;
                 }
+                int thisFileSizeKB = Math.min(testArgs.fileSizeKB, remainKB);
 
-                int thisFileSizeKB = Math.min(fileSizeKB, remainKB);
-
-                if (dirFileCount >= maxDirFileCount) {
+                if (dirFileCount >= MaxDirFiles) {
                     ++dirId;
-                    subDir = String.format("%04x", dirId);
-                    directory = initialDir(rootDir, subDir);
+                    subDir = String.format("%05d", dirId);
+                    directory = initialDir(testArgs.rootDir, subDir);
                     dirFileCount = 0;
                 }
-                if (dirId > maxDirFileCount) {
+                if (dirId > MaxDirFiles) {
                     break;
                 }
                 File dir = new File(directory);
                 if (!dir.canWrite()) {
                     throw new Exception("Directory not writable");
                 }
-
-                String fileName = String.format("%04x.bin", dirFileCount);
+                String fileName = String.format("%05d.BIN", dirFileCount);
 
                 File file = new File(directory, fileName);
 
@@ -232,10 +265,9 @@ public class WriteDirectoryThread extends Thread {
                 showText("Test file " + file);
 
                 FileOutputStream fsOut = new FileOutputStream(file);
-
+                FileChannel fcOut = fsOut.getChannel();
                 try {
                     int sizeByte = thisFileSizeKB << 10;
-                    FileChannel fcOut = fsOut.getChannel();
 
                     ByteBuffer bbWrite = ByteBuffer.allocate(sizeByte);
 
@@ -246,34 +278,21 @@ public class WriteDirectoryThread extends Thread {
                     bbWrite.array()[sizeByte- 2] = (byte) 0xaa;
                     bbWrite.array()[sizeByte - 1] = (byte) 0x55;
 
-                    long tWStart = System.currentTimeMillis();
+                    long tWStart = System.nanoTime();
                     //fsOut.write(bufOut);
                     fcOut.write(bbWrite);
-                    long tWEnd = System.currentTimeMillis();
+                    fcOut.force(true);
+                    long tWEnd = System.nanoTime();
+
+                    fsOut.flush();
                     addWritePerformanceUnit((int)(tWEnd - tWStart), thisFileSizeKB);
 
-                    if (verifyType == PatternVerifyType.immediately && (totalFileCount <= 50)) {
-                        FileInputStream fsIn = new FileInputStream(file);
-                        try {
-                            ByteBuffer bbRead = ByteBuffer.allocate(sizeByte);
-                            FileChannel fcIn = fsIn.getChannel();
-                            long tRStart = System.currentTimeMillis();
-                            fcIn.read(bbRead);
-                            long tREnd = System.currentTimeMillis();
-                            totalReadElapsedMilli += (tREnd - tRStart);
-                            totalKBRead += thisFileSizeKB;
-                            addReadPerformanceUnit((int)(tREnd - tRStart), thisFileSizeKB);
-                            updateReadPerformance();
-                            if (bbRead.compareTo(bbWrite) != 0) {
-                                throw new Exception("Pattern comparation failed");
-                            }
-                        }
-                        finally {
-                            fsIn.close();
-                        }
+                    if (testArgs.verifyType == VerifyType.immediately) {
+                        readAndCompareFile(file, bbWrite);
                     }
                 }
                 finally {
+                    fcOut.close();
                     fsOut.close();
                 }
 
@@ -285,6 +304,8 @@ public class WriteDirectoryThread extends Thread {
                 updateWritePerformance();
                 setProgress(totalFileCount);
             }
+            if (testArgs.verifyType != VerifyType.after_all)
+                setProgress(totalFilesToTest);
 
             showText("Done");
             addLog("Done");
@@ -297,6 +318,38 @@ public class WriteDirectoryThread extends Thread {
 
         }
     }
+    private void readAndCompareFile(File file,  ByteBuffer Expect) throws Exception
+    {
+        int lengthByte = Expect.array().length;
+        /*
+        File cacheDir = main.getCacheDir();
+        if (!deleteDir(cacheDir))
+            throw new Exception("Delete cache files fail");*/
+
+        FileInputStream fsIn = new FileInputStream(file);
+        FileChannel fcIn = fsIn.getChannel();
+
+        try {
+            ByteBuffer bbRead = ByteBuffer.allocate(lengthByte);
+            long tRStart = System.nanoTime();
+            fcIn.force(true);
+            fcIn.read(bbRead);
+            long tREnd = System.nanoTime();
+
+            fcIn.force(true);
+            addReadPerformanceUnit((int) (tREnd - tRStart), lengthByte / 1024);
+            updateReadPerformance();
+
+            if (!Arrays.equals(Expect.array(), bbRead.array())) {
+                throw new Exception("Pattern comparision failed");
+            }
+        }
+        finally {
+            fcIn.close();
+            fsIn.close();
+        }
+    }
+
     private void verifyFlow()
     {
         try {
@@ -304,13 +357,11 @@ public class WriteDirectoryThread extends Thread {
 
             Random rand = new Random(0x12345678);
 
-            setProgressMax(50);
+            addLog("Star to verify files on directory " + testArgs.rootDir);
 
-            addLog("Star to verify files on directory " + rootDir);
-
-            int testSizeKB = (int)(rootSizeKB * ((double)testSizeRatio / 100));
+            int testSizeKB = (int)(testArgs.rootSizeKB * ((double)testArgs.testSizeRatio / 100));
             int remainKB = testSizeKB;
-            int totalFilesToTest = (testSizeKB + fileSizeKB - 1) / fileSizeKB;
+            int totalFilesToTest = (testSizeKB + testArgs.fileSizeKB - 1) / testArgs.fileSizeKB;
 
             addLog("Size to verify: " + remainKB + " KB");
 
@@ -319,28 +370,29 @@ public class WriteDirectoryThread extends Thread {
             int dirId = 0;
             int dirFileCount = 0;
             int totalFileCount = 0;
-            int maxDirFileCount = 32768;
-            int totalKBWritten = 0;
-            long totalElapsedMillis = 0;
-            double kbPerSecond = 0;
-            String subDir = String.format("%04x", dirId);
-            String directory = initialDir(rootDir, subDir);
+            String subDir = String.format("%05d", dirId);
+            String directory = initialDir(testArgs.rootDir, subDir);
 
-            setProgressMax(totalFilesToTest);
+            int progressBase = totalFilesToTest;
+
+            if (testArgs.verifyType == VerifyType.verify_only) {
+                setProgressMax(totalFilesToTest);
+                progressBase = 0;
+            }
 
             while (remainKB != 0) {
                 if (terminated)
                     throw new Exception("User terminated");
 
-                int thisFileSizeKB = Math.min(fileSizeKB, remainKB);
+                int thisFileSizeKB = Math.min(testArgs.fileSizeKB, remainKB);
 
-                if (dirFileCount >= maxDirFileCount) {
+                if (dirFileCount >= MaxDirFiles) {
                     ++dirId;
-                    subDir = String.format("%04x", dirId);
-                    directory = initialDir(rootDir, subDir);
+                    subDir = String.format("%05d", dirId);
+                    directory = initialDir(testArgs.rootDir, subDir);
                     dirFileCount = 0;
                 }
-                if (dirId > maxDirFileCount) {
+                if (dirId > MaxDirFiles) {
                     break;
                 }
                 File dir = new File(directory);
@@ -348,7 +400,7 @@ public class WriteDirectoryThread extends Thread {
                     throw new Exception("Directory not readable");
                 }
 
-                String fileName = String.format("%04x.bin", dirFileCount);
+                String fileName = String.format("%05d.BIN", dirFileCount);
 
                 File file = new File(directory, fileName);
 
@@ -357,35 +409,25 @@ public class WriteDirectoryThread extends Thread {
                 }
                 showText("Try to verify file " + file);
 
-                byte[] bufOut = new byte[thisFileSizeKB << 10];
-                rand.nextBytes(bufOut);
+                int sizeByte = thisFileSizeKB << 10;
 
-                bufOut[0] = (byte) 0x55;
-                bufOut[1] = (byte) 0xaa;
-                bufOut[bufOut.length - 2] = (byte) 0xaa;
-                bufOut[bufOut.length - 1] = (byte) 0x55;
+                ByteBuffer bbExpected = ByteBuffer.allocate(sizeByte);
 
-                FileInputStream fsIn = new FileInputStream(file);
+                rand.nextBytes(bbExpected.array());
 
-                try {
-                    byte[] bufIn = new byte[thisFileSizeKB << 10];
+                bbExpected.array()[0] = (byte)0x55;
+                bbExpected.array()[1] = (byte) 0xaa;
+                bbExpected.array()[sizeByte- 2] = (byte) 0xaa;
+                bbExpected.array()[sizeByte - 1] = (byte) 0x55;
 
-                    long tRStart = System.currentTimeMillis();
-                    fsIn.read(bufIn);
-                    long tREnd = System.currentTimeMillis();
-                    if (!Arrays.equals(bufOut, bufIn)) {
-                        throw new Exception("Pattern comparison failed");
-                    }
-                }
-                finally {
-                    fsIn.close();
-                }
+                readAndCompareFile(file, bbExpected);
+
                 ++totalFileCount;
                 ++dirFileCount;
                 totalKBWritten += thisFileSizeKB;
                 remainKB -= thisFileSizeKB;
 
-                setProgress(totalFileCount);
+                setProgress(progressBase + totalFileCount);
             }
 
             showText("Done");
@@ -396,7 +438,36 @@ public class WriteDirectoryThread extends Thread {
             ////throw new RuntimeException(e.getMessage());
         }
     }
+    private void deleteTestFiles()
+    {
+        File dir = new File(testArgs.rootDir);
+        String[] children = dir.list();
 
+        for (int i = 0; i < children.length; i++) {
+            File child = new File(testArgs.rootDir + "/" + children[i]);
+            if (child.isDirectory())
+                deleteDir(child);
+            else
+                child.delete();
+        }
+    }
+
+    public static boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+            String[] children = dir.list();
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
+            }
+            return dir.delete();
+        } else if(dir!= null && dir.isFile()) {
+            return dir.delete();
+        } else {
+            return false;
+        }
+    }
 
     public static String initialDir(String rootDir, String subDir) throws Exception {
         File rootDirectory = new File(rootDir);

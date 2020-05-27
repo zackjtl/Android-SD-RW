@@ -1,6 +1,7 @@
 package com.example.sdtesttool.ui.test;
 
 import android.Manifest;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -11,12 +12,16 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.SeekBar;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
@@ -25,14 +30,26 @@ import com.example.sdtesttool.LogOwner;
 import com.example.sdtesttool.MainActivity;
 import com.example.sdtesttool.R;
 import com.example.sdtesttool.ui.ButtonState;
+import com.example.sdtesttool.ui.IThreadListener;
+import com.example.sdtesttool.ui.RWTestThread;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestFragment extends LogOwner {
-
+public class TestFragment extends LogOwner
+{
     private TestViewModel testViewModel;
     private Handler msgHandler;
+    private View root = null;
+    private String goButtonCaption = "TEST";
+    private String verifyButtonCaption = "Read to verify";
+    private String stopButtonCaption = "STOP";
+
+    private TestThreadListener testThreadListener = new TestThreadListener();
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
     {
@@ -48,11 +65,14 @@ public class TestFragment extends LogOwner {
 
         testViewModel = ViewModelProviders.of(getActivity()).get(TestViewModel.class);
 
-        View root = inflater.inflate(R.layout.fragment_test, container, false);
+        root = inflater.inflate(R.layout.fragment_test, container, false);
 
+        final Switch deleteFilesSwitch = (Switch)root.findViewById(R.id.switchDelFiles);
         final ProgressBar progressBar = (ProgressBar)root.findViewById(R.id.progressBar);
         final TextView textMsg = (TextView)root.findViewById(R.id.textMsg);
-        final Button goBtn = (Button)root.findViewById(R.id.gotButton);
+        final Button goBtn = (Button)root.findViewById(R.id.goButton);
+        final Button verifyBtn = (Button)root.findViewById(R.id.verifyBtn);
+        final Button clearBtn = (Button)root.findViewById(R.id.clearFilesBtn);
         final TextView textWriteSpeed = (TextView)root.findViewById(R.id.textWriteSpeed);
         final TextView textReadSpeed = (TextView)root.findViewById(R.id.textReadSpeed);
         final TextView sizeRatioText = (TextView)root.findViewById(R.id.sizeRatioText);
@@ -76,13 +96,38 @@ public class TestFragment extends LogOwner {
                 textMsg.setText(s);
             }
         });
-        testViewModel.getGoButtonState().observe(getViewLifecycleOwner(), new Observer<ButtonState>() {
+
+        Observer<ButtonState> buttonStateObserver = new Observer<ButtonState>() {
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
             @Override
             public void onChanged(ButtonState buttonState) {
-                goBtn.setText(buttonState.caption);
-                goBtn.setEnabled(buttonState.enabled);
+                Button btn = null;
+                if (buttonState.tag == 0) btn = goBtn;
+                if (buttonState.tag == 1) btn = verifyBtn;
+                if (buttonState.tag == 2) btn = clearBtn;
+
+                btn.setText(buttonState.caption);
+                btn.setEnabled(buttonState.enabled);
+
+                if (buttonState.tag != 2) {
+                    if (buttonState.enabled) {
+                        btn.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+                    } else {
+                        btn.setBackgroundColor(getResources().getColor(R.color.colorDisabled));
+                    }
+                    if (!buttonState.running) {
+                        btn.setCompoundDrawablesRelativeWithIntrinsicBounds(getResources().getDrawable(android.R.drawable.ic_media_play), null, null, null);
+                    } else {
+                        btn.setCompoundDrawablesRelativeWithIntrinsicBounds(getResources().getDrawable(android.R.drawable.ic_media_pause), null, null, null);
+                    }
+                }
             }
-        });
+        };
+
+        testViewModel.getGoButtonState().observe(getViewLifecycleOwner(), buttonStateObserver);
+        testViewModel.getVerifyButtonState().observe(getViewLifecycleOwner(), buttonStateObserver);
+        testViewModel.getClearFilesButtonState().observe(getViewLifecycleOwner(), buttonStateObserver);
+
         testViewModel.getWritePerformance().observe(getViewLifecycleOwner(), new Observer<Double>() {
             @Override
             public void onChanged(Double writePerformance) {
@@ -92,7 +137,6 @@ public class TestFragment extends LogOwner {
                 else {
                     String unitStr = "KB/s";
 
-                    writePerformance /= 100;
                     if (writePerformance >= 1024) {
                         writePerformance /= 1024;
                         unitStr = "MB/s";
@@ -110,7 +154,6 @@ public class TestFragment extends LogOwner {
                 else {
                     String unitStr = "KB/s";
 
-                    readPerformance /= 100;
                     if (readPerformance >= 1024) {
                         readPerformance /= 1024;
                         unitStr = "MB/s";
@@ -120,14 +163,26 @@ public class TestFragment extends LogOwner {
             }
         });
 
+        if (testViewModel.isFirstCreate()) {
+            try {
+                loadSettingFromCache();
+                ////testViewModel.setGoButtonState(goButtonCaption, true);
+            }
+            catch (Exception e){}
+        }
+
         setTestSizeTextView((TextView)root.findViewById(R.id.sizeRatioText));
 
         sizeRatioSeekBar.setProgress(testViewModel.getTestSizeRatio().getValue());
         sizeRatioSeekBar.setOnSeekBarChangeListener(new onSizeRatioSeekBarChangeListener());
 
+        deleteFilesSwitch.setChecked(testViewModel.getDeleteFiles().getValue());
+        deleteFilesSwitch.setOnCheckedChangeListener(new onDeleteFileCheckedChangeListener());
+
         // Create size selection items
         List<String> sizeStrings = new ArrayList<>();
         List<String> unitStrings = new ArrayList<>();
+        List<String> verifyTypeStrings = new ArrayList<>();
 
         for (int i = 1; i < 1024; i*=2) {
             sizeStrings.add(Integer.toString(i));
@@ -135,32 +190,114 @@ public class TestFragment extends LogOwner {
         unitStrings.add("KB");
         unitStrings.add("MB");
 
-        ArrayAdapter<String> sizeApapter = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_dropdown_item,
-                sizeStrings);
-        ArrayAdapter<String> unitAdapter = new ArrayAdapter<>(getContext(),
-                android.R.layout.simple_spinner_dropdown_item,
-                unitStrings);
+        verifyTypeStrings.add("No Verify");
+        verifyTypeStrings.add("Read immediately");
+        verifyTypeStrings.add("Read after all write");
 
         Spinner sizeSpinner = (Spinner)root.findViewById(R.id.sizeSpinner);
         Spinner unitSpinner = (Spinner)root.findViewById(R.id.unitSpinner);
-        sizeSpinner.setAdapter(sizeApapter);
-        unitSpinner.setAdapter(unitAdapter);
+        Spinner verifyTypeSpinner = (Spinner)root.findViewById(R.id.verifyTypeSpinner);
+
+        adpatSpinnerStrings(sizeSpinner, sizeStrings);
+        adpatSpinnerStrings(unitSpinner, unitStrings);
+        adpatSpinnerStrings(verifyTypeSpinner, verifyTypeStrings);
 
         sizeSpinner.setSelection(testViewModel.getSizeIdx());
         unitSpinner.setSelection(testViewModel.getUnitIdx());
+        verifyTypeSpinner.setSelection(testViewModel.getVerifyTypeIdx());
 
         // Set item select listener
         Spinner.OnItemSelectedListener sizeSelListener = new onSizeUnitSelectedListener();
         sizeSpinner.setOnItemSelectedListener(sizeSelListener);
         unitSpinner.setOnItemSelectedListener(sizeSelListener);
+        verifyTypeSpinner.setOnItemSelectedListener(sizeSelListener);
 
         goBtn.setOnClickListener(new onGoBtnClickListener());
+        verifyBtn.setOnClickListener(new onVerifyBtnListener());
+        clearBtn.setOnClickListener(new onClearTestFilesBtnListener());
 
         msgHandler = new messageHandler();
+        testViewModel.updateFirstCreate();
 
         return root;
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        //saveSettingToCache();
+    }
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+    @Override
+    public void onDetach()
+    {
+        super.onDetach();
+    }
+
+    private void loadSettingFromCache() throws IOException {
+        File cacheDir = getContext().getCacheDir();
+        File setting = new File(getContext().getCacheDir(), "setting.bin");
+
+        if (setting.exists()) {
+            byte[] buff = new byte[5];
+
+            FileInputStream fis = new FileInputStream(setting);
+            try {
+                fis.read(buff);
+
+                testViewModel.setSizeIdx(buff[0]);
+                testViewModel.setUnitIdx(buff[1]);
+                testViewModel.setVerifyTypeIdx(buff[2]);
+                testViewModel.setTestSizeRatioe((int)buff[3]);
+                testViewModel.setDeleteFiles(buff[4] == 0 ? false : true);
+            }
+            catch (Exception e) {
+                ;
+            }
+            finally {
+                fis.close();
+            }
+        }
+    }
+
+    private void saveSettingToCache() throws IOException {
+        File setting = new File(getContext().getCacheDir(), "setting.bin");
+        FileOutputStream fos = new FileOutputStream(setting);
+        try {
+            if (!setting.exists()) {
+                setting.createNewFile();
+            }
+            byte[] buff = new byte[5];
+
+            buff[0] = (byte)testViewModel.getSizeIdx();
+            buff[1] = (byte)testViewModel.getUnitIdx();
+            buff[2] = (byte)testViewModel.getVerifyTypeIdx();
+            buff[3] = (byte)testViewModel.getTestSizeRatio().getValue().byteValue();
+            buff[4] = (byte)(testViewModel.getDeleteFiles().getValue() ? 1 : 0);
+
+            fos.write(buff);
+            fos.flush();
+        }
+        catch (Exception e) {
+            ;
+        }
+        finally {
+            fos.close();
+        }
+    }
+
+    private void adpatSpinnerStrings(AdapterView view, List<String> strings)
+    {
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                strings);
+
+        view.setAdapter(adapter);
+    }
+
     private long getRootTotalSizeKB()
     {
         MainActivity main = (MainActivity) getActivity();
@@ -188,23 +325,25 @@ public class TestFragment extends LogOwner {
         tv.setText(String.format("Test size ratio: %d%% (%d %s)", testViewModel.getTestSizeRatio().getValue(), size, unit));
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        ///msgHandler
-    }
+    /*
+     *  Callback (listener) functions
+     */
 
     public class onSizeUnitSelectedListener implements AdapterView.OnItemSelectedListener {
         @Override
         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
             Spinner sizeSpinner = (Spinner)getActivity().findViewById(R.id.sizeSpinner);
             Spinner unitSpinner = (Spinner)getActivity().findViewById(R.id.unitSpinner);
-
-            String size = (String)sizeSpinner.getSelectedItem();
-            String unit = (String)unitSpinner.getSelectedItem();
+            Spinner verifyTypeSpinner = (Spinner)getActivity().findViewById(R.id.verifyTypeSpinner);
 
             testViewModel.setSizeIdx(sizeSpinner.getSelectedItemPosition());
             testViewModel.setUnitIdx(unitSpinner.getSelectedItemPosition());
+            testViewModel.setVerifyTypeIdx(verifyTypeSpinner.getSelectedItemPosition());
+
+            try {
+                saveSettingToCache();
+            }
+            catch (Exception e) { }
             ////testViewModel.setTextMsg("You selected: " + size + " " + unit);
         }
 
@@ -218,14 +357,34 @@ public class TestFragment extends LogOwner {
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             testViewModel.setTestSizeRatioe(progress);
             setTestSizeTextView((TextView)getActivity().findViewById(R.id.sizeRatioText));
+            try {
+                saveSettingToCache();
+            }
+            catch (Exception e) { }
         }
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {}
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {}
     }
-    public class onGoBtnClickListener implements Button.OnClickListener {
-        private Thread runThread = null;
+    public class onDeleteFileCheckedChangeListener implements RadioButton.OnCheckedChangeListener {
+
+        @Override
+        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            testViewModel.setDeleteFiles(isChecked);
+            try {
+                saveSettingToCache();
+            }
+            catch (Exception e) { }
+        }
+    }
+
+    public interface IThreadCreator {
+        public void createRun();
+    }
+
+    public class onGoBtnClickListener implements Button.OnClickListener, IThreadCreator
+    {
         @Override
         public void onClick(View v) {
             if (!testViewModel.getRunning()) {
@@ -235,24 +394,84 @@ public class TestFragment extends LogOwner {
                 testViewModel.stopThread();
             }
         }
-        private void createRun()
+
+        @Override
+        public void createRun()
         {
             try {
-                MainActivity main = (MainActivity) getActivity();
-                assert main != null;
-                String writePath = main.getTargetDir();
-                long totalKB = getRootTotalSizeKB();
-
                 addLog("Test with file size " + getTestFileSizeKB() + " KB");
 
-                testViewModel.setGoButtonState("STOP", true);
-                testViewModel.startThread(msgHandler, writePath, (int)totalKB, getTestFileSizeKB(), testViewModel.getTestSizeRatio().getValue());
+                testViewModel.setGoButtonState(stopButtonCaption, true, true);
+                testViewModel.setVerifyButtonState(verifyButtonCaption, false, false);
+                testViewModel.startThread(testThreadListener , msgHandler, createTestArgs(getVerifyType()));
             }
             catch (Exception e) {
                 addLog("[Error] " + e.getMessage());
             }
         }
     }
+    public class onVerifyBtnListener extends onGoBtnClickListener {
+        private Thread runThread = null;
+
+        public void createRun()
+        {
+            try {
+                addLog("Read to verify with file size " + getTestFileSizeKB() + " KB");
+
+                testViewModel.setGoButtonState(goButtonCaption, false, false);
+                testViewModel.setVerifyButtonState(stopButtonCaption, true, true);
+                testViewModel.startThread(testThreadListener, msgHandler, createTestArgs(RWTestThread.VerifyType.verify_only));
+            }
+            catch (Exception e) {
+                addLog("[Error] " + e.getMessage());
+            }
+        }
+    }
+    public class onClearTestFilesBtnListener extends onGoBtnClickListener {
+        private Thread runThread = null;
+
+        public void createRun()
+        {
+            try {
+                addLog("Read to verify with file size " + getTestFileSizeKB() + " KB");
+
+                testViewModel.setGoButtonState(goButtonCaption, false, false);
+                testViewModel.setVerifyButtonState(verifyButtonCaption, false, false);
+                testViewModel.startThread(testThreadListener, msgHandler, createTestArgs(RWTestThread.VerifyType.clear_files));
+            }
+            catch (Exception e) {
+                addLog("[Error] " + e.getMessage());
+            }
+        }
+    }
+    private RWTestThread.TestArgs createTestArgs(final RWTestThread.VerifyType verifyTypeInput)
+    {
+        final MainActivity main = (MainActivity) getActivity();
+        assert main != null;
+
+        return new RWTestThread.TestArgs() {
+            {
+                verifyType = verifyTypeInput;
+                rootSizeKB = (int)getRootTotalSizeKB();
+                rootDir = main.getTargetDir();
+                fileSizeKB = getTestFileSizeKB();
+                testSizeRatio = testViewModel.getTestSizeRatio().getValue();
+                deleteFiles = testViewModel.getDeleteFiles().getValue();
+
+                if (verifyType == RWTestThread.VerifyType.clear_files)
+                    deleteFiles = true;
+            };
+        };
+    }
+
+    private RWTestThread.VerifyType getVerifyType()
+    {
+        if (testViewModel.getVerifyTypeIdx() == 0) return RWTestThread.VerifyType.none;
+        else if (testViewModel.getVerifyTypeIdx() == 1) return RWTestThread.VerifyType.immediately;
+        else return RWTestThread.VerifyType.after_all;
+    }
+
+
     private int getTestFileSizeKB()
     {
         Spinner sizeSpinner = (Spinner)getActivity().findViewById(R.id.sizeSpinner);
@@ -262,6 +481,13 @@ public class TestFragment extends LogOwner {
         int unitShift = unitSpinner.getSelectedItemId() == 0 ? (0) : (10);
 
         return size << unitShift;
+    }
+
+    private void onAlmostDone()
+    {
+        testViewModel.setGoButtonState(goButtonCaption, true, false);
+        testViewModel.setVerifyButtonState(verifyButtonCaption, true, false);
+        assert testViewModel.getProgressMax().getValue() != null;
     }
 
 
@@ -275,6 +501,14 @@ public class TestFragment extends LogOwner {
         almost_done;
 
         public int value = ordinal() + 1;
+    }
+
+    public class TestThreadListener implements  IThreadListener {
+
+        @Override
+        public void onAlmostDone(int Tag) {
+
+        }
     }
 
     // Handle messages received from thread
@@ -301,9 +535,7 @@ public class TestFragment extends LogOwner {
                     testViewModel.setReadPerformance(msg.arg2 / 100);
                 }
                 else if (msg.arg1 == messageId.almost_done.value) {
-                    testViewModel.setGoButtonState("GO", true);
-                    assert testViewModel.getProgressMax().getValue() != null;
-                    testViewModel.setProgress(testViewModel.getProgressMax().getValue());
+                    onAlmostDone();
                 }
                 else {
                     ;

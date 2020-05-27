@@ -7,79 +7,135 @@
     android:theme="@style/Widget.Design.TabLayout"
     tools:context=".ui.test.TestFragment">
 
+    <Button
+        android:id="@+id/clearFilesBtn"
+        android:layout_width="199dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginLeft="32dp"
+        android:layout_marginTop="220dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginRight="32dp"
+        android:drawableStart="@android:drawable/ic_menu_delete"
+        android:drawingCacheQuality="high"
+        android:gravity="center"
+        android:text="Clear test files"
+        android:textColor="@android:color/background_dark"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/goButton" />
+
     <TextView
-        android:id="@+id/textReadSpeed"
-        android:layout_width="277dp"
-        android:layout_height="25dp"
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginLeft="32dp"
+        android:layout_marginTop="24dp"
+        android:text="Test Flow:"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
+
+    <Button
+        android:id="@+id/verifyBtn"
+        android:layout_width="209dp"
+        android:layout_height="40dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
+        android:background="@color/colorAccent"
+        android:drawableStart="@android:drawable/ic_media_play"
+        android:drawingCacheQuality="high"
+        android:gravity="center"
+        android:text="Read to verify"
+        android:textColor="@android:color/background_light"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/goButton" />
+
+    <Spinner
+        android:id="@+id/verifyTypeSpinner"
+        style="@style/Platform.Widget.AppCompat.Spinner"
+        android:layout_width="207dp"
+        android:layout_height="27dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginLeft="12dp"
+        android:layout_marginTop="16dp"
+        android:spinnerMode="dialog"
+        app:layout_constraintStart_toEndOf="@+id/textView2"
+        app:layout_constraintTop_toBottomOf="@+id/unitSpinner" />
+
+    <TextView
+        android:id="@+id/textReadSpeed"
+        android:layout_width="291dp"
+        android:layout_height="25dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginLeft="32dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginRight="32dp"
         android:text="Read performance:"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.076"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textWriteSpeed" />
 
     <TextView
         android:id="@+id/textMsg"
-        android:layout_width="283dp"
-        android:layout_height="61dp"
+        android:layout_width="289dp"
+        android:layout_height="51dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.021"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/progressBar" />
-
-    <Spinner
-        android:id="@+id/unitSpinner"
-        style="@style/Platform.Widget.AppCompat.Spinner"
-        android:layout_width="92dp"
-        android:layout_height="38dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="75dp"
-        android:layout_marginRight="75dp"
-        android:spinnerMode="dialog"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/sizeSpinner"
-        app:layout_constraintTop_toBottomOf="@+id/sizeSelCaption" />
+        app:layout_constraintTop_toBottomOf="@+id/verifyBtn" />
 
     <Spinner
         android:id="@+id/sizeSpinner"
         style="@style/Platform.Widget.AppCompat.Spinner"
-        android:layout_width="144dp"
-        android:layout_height="38dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginRight="8dp"
+        android:layout_width="81dp"
+        android:layout_height="29dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
         android:spinnerMode="dialog"
-        app:layout_constraintEnd_toStartOf="@+id/unitSpinner"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/sizeSelCaption" />
+        app:layout_constraintStart_toEndOf="@+id/textView"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Spinner
+        android:id="@+id/unitSpinner"
+        style="@style/Platform.Widget.AppCompat.Spinner"
+        android:layout_width="68dp"
+        android:layout_height="29dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
+        android:spinnerMode="dialog"
+        app:layout_constraintStart_toEndOf="@+id/sizeSpinner"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/gotButton"
-        android:layout_width="288dp"
-        android:layout_height="48dp"
+        android:id="@+id/goButton"
+        android:layout_width="209dp"
+        android:layout_height="36dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="12dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
-        android:background="@android:drawable/progress_horizontal"
+        android:background="@color/colorAccent"
         android:drawableStart="@android:drawable/ic_media_play"
         android:drawingCacheQuality="high"
         android:gravity="center"
-        android:text="Go"
+        android:text="Test"
         android:textColor="@android:color/background_light"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
@@ -89,11 +145,11 @@
     <ProgressBar
         android:id="@+id/progressBar"
         style="@android:style/Widget.Material.Light.ProgressBar.Horizontal"
-        android:layout_width="289dp"
-        android:layout_height="29dp"
+        android:layout_width="295dp"
+        android:layout_height="28dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="9dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
         android:drawingCacheQuality="high"
@@ -102,37 +158,20 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gotButton" />
-
-    <TextView
-        android:id="@+id/sizeSelCaption"
-        android:layout_width="299dp"
-        android:layout_height="28dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginRight="32dp"
-        android:background="?android:attr/fastScrollPreviewBackgroundRight"
-        android:text="Size Selection"
-        android:textColor="@android:color/background_light"
-        android:textSize="18sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.133"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/textReadSpeed" />
 
     <TextView
         android:id="@+id/textWriteSpeed"
-        android:layout_width="277dp"
-        android:layout_height="25dp"
+        android:layout_width="287dp"
+        android:layout_height="24dp"
         android:layout_marginStart="32dp"
         android:layout_marginLeft="32dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
         android:text="Write performance:"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.085"
+        app:layout_constraintHorizontal_bias="0.023"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textMsg" />
 
@@ -140,26 +179,45 @@
         android:id="@+id/sizeRatioSeekBar"
         android:layout_width="318dp"
         android:layout_height="19dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="8dp"
         android:max="100"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.206"
+        app:layout_constraintHorizontal_bias="0.346"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/sizeRatioText" />
 
     <TextView
         android:id="@+id/sizeRatioText"
-        android:layout_width="271dp"
-        android:layout_height="21dp"
-        android:layout_marginStart="36dp"
-        android:layout_marginLeft="36dp"
+        android:layout_width="239dp"
+        android:layout_height="23dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginLeft="32dp"
         android:layout_marginTop="8dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginRight="32dp"
         android:text="Test size ratio (100%)"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/sizeSpinner" />
+        app:layout_constraintTop_toBottomOf="@+id/verifyTypeSpinner" />
+
+    <Switch
+        android:id="@+id/switchDelFiles"
+        android:layout_width="90dp"
+        android:layout_height="76dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginLeft="12dp"
+        android:layout_marginTop="12dp"
+        android:text="Delete files on finish"
+        android:textSize="14sp"
+        app:layout_constraintStart_toEndOf="@+id/goButton"
+        app:layout_constraintTop_toBottomOf="@+id/sizeRatioSeekBar" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginLeft="32dp"
+        android:layout_marginTop="14dp"
+        android:text="File Size:"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -6,8 +6,10 @@ import android.os.Bundle;
 import com.example.sdtesttool.ui.home.HomeFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.navigation.NavController;
@@ -86,5 +88,11 @@ public class MainActivity extends AppCompatActivity
         logData.setValue(logData.getValue() + Text + "\n");
         ////logString += Text + "\n";
     }
+
+    @Override
+    public void onAttachFragment(@NonNull Fragment fragment) {
+
+    }
+
 
 }
