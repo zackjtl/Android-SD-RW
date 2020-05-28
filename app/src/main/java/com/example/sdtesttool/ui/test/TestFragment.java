@@ -48,6 +48,7 @@ public class TestFragment extends LogOwner
     private String goButtonCaption = "TEST";
     private String verifyButtonCaption = "Read to verify";
     private String stopButtonCaption = "STOP";
+    private static long currRootTotalSizeKB = 0;
 
     private TestThreadListener testThreadListener = new TestThreadListener();
 
@@ -77,6 +78,10 @@ public class TestFragment extends LogOwner
         final TextView textReadSpeed = (TextView)root.findViewById(R.id.textReadSpeed);
         final TextView sizeRatioText = (TextView)root.findViewById(R.id.sizeRatioText);
         final SeekBar sizeRatioSeekBar = (SeekBar)root.findViewById(R.id.sizeRatioSeekBar);
+
+        MainActivity main = (MainActivity)getActivity();
+        testViewModel.setRootDir(main.getRootDir());
+        testViewModel.setTargetDir(main.getTargetDir());
 
         testViewModel.getProgress().observe(getViewLifecycleOwner(), new Observer<Integer>() {
             @Override
@@ -166,12 +171,13 @@ public class TestFragment extends LogOwner
         if (testViewModel.isFirstCreate()) {
             try {
                 loadSettingFromCache();
+                currRootTotalSizeKB = getRootTotalSizeKB();
                 ////testViewModel.setGoButtonState(goButtonCaption, true);
             }
             catch (Exception e){}
         }
 
-        setTestSizeTextView((TextView)root.findViewById(R.id.sizeRatioText));
+        updateTestSizeTextView((TextView)root.findViewById(R.id.sizeRatioText));
 
         sizeRatioSeekBar.setProgress(testViewModel.getTestSizeRatio().getValue());
         sizeRatioSeekBar.setOnSeekBarChangeListener(new onSizeRatioSeekBarChangeListener());
@@ -300,10 +306,8 @@ public class TestFragment extends LogOwner
 
     private long getRootTotalSizeKB()
     {
-        MainActivity main = (MainActivity) getActivity();
-
-        String rootPath = main.getRootDir();
-        String writePath = main.getTargetDir();
+        String rootPath = testViewModel.getRootDir();
+        String writePath = testViewModel.getTargetDir();
         StatFs stat1 = new StatFs(rootPath);
         long totalBytes = (long) stat1.getBlockSize() * (long) stat1.getFreeBlocks();
         long totalKB = totalBytes / 1024;
@@ -313,9 +317,9 @@ public class TestFragment extends LogOwner
 
         return totalKB;
     }
-    private void setTestSizeTextView(TextView tv)
+    private void updateTestSizeTextView(TextView tv)
     {
-        long size = (long)(getRootTotalSizeKB() * ((double)testViewModel.getTestSizeRatio().getValue() / 100.0));
+        long size = (long)(currRootTotalSizeKB * ((double)testViewModel.getTestSizeRatio().getValue() / 100.0));
         String unit = "KB";
 
         if (size >= 1024) {
@@ -356,7 +360,7 @@ public class TestFragment extends LogOwner
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             testViewModel.setTestSizeRatioe(progress);
-            setTestSizeTextView((TextView)getActivity().findViewById(R.id.sizeRatioText));
+            updateTestSizeTextView((TextView)getActivity().findViewById(R.id.sizeRatioText));
             try {
                 saveSettingToCache();
             }
@@ -488,6 +492,8 @@ public class TestFragment extends LogOwner
         testViewModel.setGoButtonState(goButtonCaption, true, false);
         testViewModel.setVerifyButtonState(verifyButtonCaption, true, false);
         assert testViewModel.getProgressMax().getValue() != null;
+        currRootTotalSizeKB = getRootTotalSizeKB();
+        updateTestSizeTextView((TextView)root.findViewById(R.id.sizeRatioText));
     }
 
 

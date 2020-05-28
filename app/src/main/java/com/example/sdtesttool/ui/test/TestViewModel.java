@@ -35,6 +35,9 @@ public class TestViewModel extends ViewModel {
 
     MutableLiveData<Integer> testSizeRatio;
 
+    private String rootDir;
+    private String targetDir;
+
     private TestThreadBase runThraed;
 
     public TestViewModel() {
@@ -137,6 +140,11 @@ public class TestViewModel extends ViewModel {
     public void setReadPerformance(double value) {readPerformance.setValue(value);}
     public void setTestSizeRatioe(Integer value) {testSizeRatio.setValue(value);}
     public void setRunning(boolean value) {running = value;}
+
+    public void setRootDir(String value) {rootDir = value;}
+    public String getRootDir() {return rootDir;}
+    public void setTargetDir(String value) {targetDir = value;}
+    public String getTargetDir() {return targetDir;}
 
     public int getSizeIdx() {
         return mSizeIdx;
